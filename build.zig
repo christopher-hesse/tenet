@@ -16,6 +16,7 @@ fn linkMKL(exe : *std.build.LibExeObjStep) void {
     // https://stackoverflow.com/a/19684240
     // exe.linkSystemLibrary("tbb12");
     exe.linkLibC();
+    exe.addPackagePath("mkl", "bindings\\mkl.zig");
 }
 
 
@@ -55,7 +56,6 @@ pub fn build(b: *std.build.Builder) void {
     for ([_][]const u8{
         "src/tensor.zig", // for some reason this also runs array.zig's tests
         // "src/array.zig",
-        "src/mkl.zig",
     }) |test_file| {
         const tests = b.addTest(test_file);
         tests.setTarget(target);

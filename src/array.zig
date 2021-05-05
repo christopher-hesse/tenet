@@ -19,7 +19,7 @@ const std = @import("std");
 const reference_counter = @import("reference_counter.zig");
 const ReferenceCounter = reference_counter.ReferenceCounter;
 
-const mkl = @import("mkl.zig");
+const mkl = @import("mkl");
 
 // CUDNN_DIM_MAX is apparently 8
 const maxNumDim = 8;

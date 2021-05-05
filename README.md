@@ -4,6 +4,28 @@ A [torch](https://github.com/pytorch/pytorch)-inspired automatic differentiation
 
 Imagine the [numpy](https://numpy.org/) NDArray, only you can also compute backward in time using inverted functions.  Well, not quite, but you *can* calculate derivatives with respect to the inputs of your computation.
 
+## Usage
+
+The main struct is `Tensor`, an N-dimensional array of numbers, usually floating point numbers.  Here's a short example showing how to do a `+` operation along with a backward pass:
+
+```zig
+const tenet = @import("tenet.zig");
+const alc = std.testing.allocator;
+var a = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 1.0, tenet.tensor.REQUIRES_GRAD);
+defer a.release();
+var b = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 2.0, tenet.tensor.REQUIRES_GRAD);
+defer b.release();
+var out = try tenet.tensor.plusAlloc(alc, a, b);
+defer out.release();
+var grad_out = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 4.0, 0);
+defer grad_out.release();
+try tenet.tensor.backwardAlloc(alc, out, grad_out);
+std.testing.expect(tenet.array.equal(a.grad.?, grad_out.data));
+std.testing.expect(tenet.array.equal(b.grad.?, grad_out.data));
+```
+
+For a full example, look at the [MNIST example](src/main.zig).
+
 ## Automatic Differentiation
 
 If you have a function `z = f(x, y)` and you want to know how to change `x` and `y` to minimize `z`, how do you do find that out?  One way would be to increase and decrease `x` and `y` individually to see how much `z` changes, then move them in whichever direction is better.  That method is called ["finite differences"](https://en.wikipedia.org/wiki/Finite_difference#Relation_with_derivatives).
@@ -84,28 +106,6 @@ print(f"finite differences approximation: grad_x = {grad_x_fd}, grad_y = {grad_y
 See [scripts/grad_example.py](scripts/grad_example.py) for the full script.  In the case where the inputs and outputs are matrices instead of scalars, `grad_out` will have the shape of the output, and each `grad_in_<name>` will have the shape of the corresponding input.
 
 In automatic differentiation, you create `backward_f` automatically based on the operations done by `f`.  Like in torch, no explicit graph is defined when using this prototype.  Arrays in `tenet` track the series of operations used to create them, so when you do the backward pass, each `backward_` function is run for you, automatically.
-
-## Usage
-
-The main struct is `Tensor`, an N-dimensional array of numbers, usually floating point numbers.  Here's a short example showing how to do a `+` operation along with a backward pass:
-
-```zig
-const tenet = @import("tenet.zig");
-const alc = std.testing.allocator;
-var a = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 1.0, tenet.tensor.REQUIRES_GRAD);
-defer a.release();
-var b = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 2.0, tenet.tensor.REQUIRES_GRAD);
-defer b.release();
-var out = try tenet.tensor.plusAlloc(alc, a, b);
-defer out.release();
-var grad_out = try tenet.Tensor.allocWithValue(f32, alc, &[_]u64{2, 3, 4}, 4.0, 0);
-defer grad_out.release();
-try tenet.tensor.backwardAlloc(alc, out, grad_out);
-std.testing.expect(tenet.array.equal(a.grad.?, grad_out.data));
-std.testing.expect(tenet.array.equal(b.grad.?, grad_out.data));
-```
-
-For a full example, look at the [MNIST example](src/main.zig).
 
 ## Interesting Features
 

@@ -62,7 +62,7 @@ def backward_square(x, grad_out):
     return grad_in
 
 def backward_cube(x, grad_out):
-    grad_in = 3 * x **2 * grad_out
+    grad_in = 3 * x ** 2 * grad_out
     return grad_in
 
 def backward_f(x, y, grad_z):

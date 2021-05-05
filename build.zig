@@ -1,7 +1,7 @@
 const std = @import("std");
 
-const mkl_path = "C:\\Program Files (x86)\\Intel\\oneAPI\\mkl\\2021.2.0\\";
-const tbb_path = "C:\\Program Files (x86)\\Intel\\oneAPI\\tbb\\2021.2.0\\";
+const mkl_path = "C:\\Program Files (x86)\\Intel\\oneAPI\\mkl\\latest\\";
+const tbb_path = "C:\\Program Files (x86)\\Intel\\oneAPI\\tbb\\latest\\";
 
 fn linkMKL(exe : *std.build.LibExeObjStep) void {
     exe.addIncludeDir(mkl_path ++ "include");
@@ -12,13 +12,15 @@ fn linkMKL(exe : *std.build.LibExeObjStep) void {
     exe.linkSystemLibrary("mkl_intel_lp64");
     exe.addLibPath(tbb_path ++ "lib\\intel64\\vc14");
     // even after doing this, tbb12 still seems to be dynamically linked
+    // it looks like tbb does not support static linking on purpose
+    // https://stackoverflow.com/a/19684240
     // exe.linkSystemLibrary("tbb12");
     exe.linkLibC();
 }
 
 
 pub fn build(b: *std.build.Builder) void {
-    const link_mkl = b.option(bool, "link-mkl", "Link the MKL library") orelse false;
+    const use_mkl = b.option(bool, "use-mkl", "Use the MKL library") orelse false;
 
     // Standard target options allows the person running `zig build` to choose
     // what target to build for. Here we do not override the defaults, which
@@ -33,7 +35,8 @@ pub fn build(b: *std.build.Builder) void {
     const exe = b.addExecutable("main", "src/main.zig");
     exe.setTarget(target);
     exe.setBuildMode(mode);
-    if (link_mkl) {
+    exe.addBuildOption(bool, "USE_MKL", use_mkl);
+    if (use_mkl) {
         linkMKL(exe);
     }
     exe.install();
@@ -57,7 +60,8 @@ pub fn build(b: *std.build.Builder) void {
         const tests = b.addTest(test_file);
         tests.setTarget(target);
         tests.setBuildMode(mode);
-        if (link_mkl) {
+        tests.addBuildOption(bool, "USE_MKL", use_mkl);
+        if (use_mkl) {
             linkMKL(tests);
         }
         test_step.dependOn(&tests.step);

@@ -13,11 +13,13 @@
 //
 //   Both of these are freed when the reference count hits zero.
 
+const USE_MKL = @import("build_options").USE_MKL;
+
 const std = @import("std");
 const reference_counter = @import("reference_counter.zig");
 const ReferenceCounter = reference_counter.ReferenceCounter;
 
-// const mkl = @import("mkl.zig");
+const mkl = @import("mkl.zig");
 
 // CUDNN_DIM_MAX is apparently 8
 const maxNumDim = 8;
@@ -151,8 +153,8 @@ const StridedIterator = struct {
 };
 
 pub const DType = enum {
-    u8,  // useful for pixel data
-    u64,  // useful for shapes
+    u8, // useful for pixel data
+    u64, // useful for shapes
     i64,
     f32,
     f64, // useful for grad check
@@ -303,7 +305,7 @@ test "read_buffer_from_string" {
 
 pub const Array = struct {
     buffer_union: DTypeBuffer,
-    shape : DimArray,
+    shape: DimArray,
     strides: DimArray,
     numel: u64,
     ndim: u64,
@@ -327,7 +329,7 @@ pub const Array = struct {
     }
 
     fn createStrides(shape: []const u64) DimArray {
-        var strides = DimArray{.ndim=shape.len};
+        var strides = DimArray{ .ndim = shape.len };
         calculateStrides(shape, strides.getSlice());
         return strides;
     }
@@ -346,7 +348,7 @@ pub const Array = struct {
             f64 => DTypeBuffer{ .f64 = buf },
             else => @panic("invalid type"),
         };
-        return Self{ .ndim = ndim, .numel = numel, .dtype = typeToDType(T), .ref_counter = ref_counter, .buffer_union = buffer_union, .alc = alc, .is_contiguous = true, .offset = 0, .shape=DimArray.init(shape), .strides=createStrides(shape) };
+        return Self{ .ndim = ndim, .numel = numel, .dtype = typeToDType(T), .ref_counter = ref_counter, .buffer_union = buffer_union, .alc = alc, .is_contiguous = true, .offset = 0, .shape = DimArray.init(shape), .strides = createStrides(shape) };
     }
 
     pub fn allocWithRange(comptime T: type, alc: *std.mem.Allocator, shape: []const u64, start: T, step: T) !Self {
@@ -388,7 +390,7 @@ pub const Array = struct {
             f64 => DTypeBuffer{ .f64 = buf },
             else => @panic("invalid type"),
         };
-        return Self{ .ndim = ndim, .numel = numel, .dtype = typeToDType(T), .ref_counter = null, .buffer_union = data, .alc = null, .is_contiguous = true, .offset = 0, .shape=DimArray.init(shape), .strides=createStrides(shape)  };
+        return Self{ .ndim = ndim, .numel = numel, .dtype = typeToDType(T), .ref_counter = null, .buffer_union = data, .alc = null, .is_contiguous = true, .offset = 0, .shape = DimArray.init(shape), .strides = createStrides(shape) };
     }
 
     pub fn flatFromBuffer(comptime T: type, buf: []T) Self {
@@ -478,7 +480,7 @@ pub const Array = struct {
             output_index += 1;
         }
         var numel = sliceProduct(u64, shape);
-        return Self{ .ndim = shape.len, .numel = numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = contiguous, .offset = self.offset, .shape=DimArray.init(shape), .strides=DimArray.init(strides[0..shape.len]) };
+        return Self{ .ndim = shape.len, .numel = numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = contiguous, .offset = self.offset, .shape = DimArray.init(shape), .strides = DimArray.init(strides[0..shape.len]) };
     }
 
     pub fn narrowView(self: Self, pos: []const u64, shape: []const u64) Self {
@@ -508,7 +510,7 @@ pub const Array = struct {
             }
         }
         var numel = sliceProduct(u64, shape);
-        return Self{ .ndim = self.ndim, .numel = numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = is_contiguous, .offset = offset, .shape=DimArray.init(shape), .strides=self.strides };
+        return Self{ .ndim = self.ndim, .numel = numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = is_contiguous, .offset = offset, .shape = DimArray.init(shape), .strides = self.strides };
     }
 
     pub fn reshapeView(self: Self, shape: []const u64) Self {
@@ -519,7 +521,7 @@ pub const Array = struct {
         if (!self.is_contiguous) {
             @panic("Reshape view of non-contiguous arrays not yet supported");
         }
-        return Self{ .ndim = shape.len, .numel = self.numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = self.is_contiguous, .offset = self.offset, .shape=DimArray.init(shape), .strides=createStrides(shape) };
+        return Self{ .ndim = shape.len, .numel = self.numel, .dtype = self.dtype, .ref_counter = self.ref_counter, .buffer_union = self.buffer_union, .alc = self.alc, .is_contiguous = self.is_contiguous, .offset = self.offset, .shape = DimArray.init(shape), .strides = createStrides(shape) };
     }
 
     pub fn createIterator(self: Self) StridedIterator {
@@ -1657,9 +1659,9 @@ fn mklMtimesBuffers(comptime T: type, x_in: Array, y_in: Array, z_out: Array) vo
     var x_buf = x_in.getBuffer(T);
     var y_buf = y_in.getBuffer(T);
     var z_buf = z_out.getBuffer(T);
-    var lda : u64 = k;
-    var ldb : u64 = n;
-    var ldc : u64 = n;
+    var lda: u64 = k;
+    var ldb: u64 = n;
+    var ldc: u64 = n;
     var alpha: T = 1.0;
     var beta: T = 1.0;
     switch (T) {
@@ -1692,29 +1694,29 @@ fn mklMtimes(x_in: Array, y_in: Array, z_out: Array) void {
     }
 }
 
-// test "cblas_sgemm" {
-//     {
-//         var a: f32 = 2.0;
-//         var b: f32 = 2.0;
-//         var c: f32 = 2.0;
-//         mkl.cblas_sgemm(&a, &b, &c, 4, 4, 4, 1, 1, 1, 1.0, 1.0);
-//         std.testing.expect(c == 6.0);
-//     }
-//     {
-//         var a = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2], [3, 4], [5, 6]]");
-//         defer a.release();
-//         var b = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2, 3, 4], [5, 6, 7, 8]]");
-//         defer b.release();
-//         var c = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]");
-//         defer c.release();
-//         mklMtimes(a, b, c);
-//         var expected_output = try Array.allocWithString(f32, std.testing.allocator, "[[12, 16, 20, 24], [28, 36, 44, 52], [44, 56, 68, 80]]");
-//         defer expected_output.release();
-//         std.debug.print("c {}\n", .{c});
-//         std.debug.print("expected_output {}\n", .{expected_output});
-//         std.testing.expect(equal(c, expected_output));
-//     }
-// }
+test "cblas_sgemm" {
+    if (USE_MKL) {
+        {
+            var a: f32 = 2.0;
+            var b: f32 = 2.0;
+            var c: f32 = 2.0;
+            mkl.cblas_sgemm(&a, &b, &c, 4, 4, 4, 1, 1, 1, 1.0, 1.0);
+            std.testing.expect(c == 6.0);
+        }
+        {
+            var a = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2], [3, 4], [5, 6]]");
+            defer a.release();
+            var b = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2, 3, 4], [5, 6, 7, 8]]");
+            defer b.release();
+            var c = try Array.allocWithString(f32, std.testing.allocator, "[[1, 2, 3, 4], [5, 6, 7, 8], [9, 10, 11, 12]]");
+            defer c.release();
+            mklMtimes(a, b, c);
+            var expected_output = try Array.allocWithString(f32, std.testing.allocator, "[[12, 16, 20, 24], [28, 36, 44, 52], [44, 56, 68, 80]]");
+            defer expected_output.release();
+            std.testing.expect(equal(c, expected_output));
+        }
+    }
+}
 
 fn mtimesBuffers(comptime T: type, x_in: Array, y_in: Array, z_out: Array) void {
     var z_r: u64 = 0;
@@ -1734,8 +1736,11 @@ fn mtimesBuffers(comptime T: type, x_in: Array, y_in: Array, z_out: Array) void 
 pub fn mtimesAlloc(alc: *std.mem.Allocator, x: Array, y: Array) !Array {
     var z_shape = mtimesShape(x.getShape(), y.getShape());
     var z = try zerosAlloc(alc, x.dtype, z_shape.getSlice());
-    // mklMtimes(x, y, z);
-    mtimes(x, y, z);
+    if (USE_MKL) {
+        mklMtimes(x, y, z);
+    } else {
+        mtimes(x, y, z);
+    }
     return z;
 }
 
@@ -1805,7 +1810,7 @@ fn reduceBuffers(comptime T: type, in: Array, in_it: *StridedIterator, out: Arra
         };
     }
     if (op == .mean) {
-        r = switch(@typeInfo(T)) {
+        r = switch (@typeInfo(T)) {
             .Int => @divTrunc(r, @intCast(T, in.numel)),
             .Float => r / @intToFloat(T, in.numel),
             else => @panic("invalid type"),
@@ -2342,21 +2347,21 @@ fn functionToNumArgs(f: Function) u64 {
 
 fn functionToAutocastArgs(f: Function) []const u64 {
     return switch (f) {
-        .plus => &[_]u64{0, 1},
-        .minus => &[_]u64{0, 1},
+        .plus => &[_]u64{ 0, 1 },
+        .minus => &[_]u64{ 0, 1 },
         .uplus => &[_]u64{},
         .uminus => &[_]u64{},
-        .times => &[_]u64{0, 1},
-        .mtimes => &[_]u64{0, 1},
-        .divide => &[_]u64{0, 1},
-        .mdivide => &[_]u64{0, 1},
-        .power => &[_]u64{0, 1},
-        .mpower => &[_]u64{0, 1},
-        .eq => &[_]u64{0, 1},
-        .gt => &[_]u64{0, 1},
-        .gte => &[_]u64{0, 1},
-        .lt => &[_]u64{0, 1},
-        .lte => &[_]u64{0, 1},
+        .times => &[_]u64{ 0, 1 },
+        .mtimes => &[_]u64{ 0, 1 },
+        .divide => &[_]u64{ 0, 1 },
+        .mdivide => &[_]u64{ 0, 1 },
+        .power => &[_]u64{ 0, 1 },
+        .mpower => &[_]u64{ 0, 1 },
+        .eq => &[_]u64{ 0, 1 },
+        .gt => &[_]u64{ 0, 1 },
+        .gte => &[_]u64{ 0, 1 },
+        .lt => &[_]u64{ 0, 1 },
+        .lte => &[_]u64{ 0, 1 },
         .transpose => &[_]u64{},
         .ctranspose => &[_]u64{},
         .f32 => &[_]u64{},
@@ -2364,7 +2369,7 @@ fn functionToAutocastArgs(f: Function) []const u64 {
         .log => &[_]u64{},
         .log2 => &[_]u64{},
         .exp => &[_]u64{},
-        .max => &[_]u64{0, 1},
+        .max => &[_]u64{ 0, 1 },
         .reduce_sum => &[_]u64{},
         .keep_sum => &[_]u64{},
         .reduce_max => &[_]u64{},
@@ -3467,7 +3472,7 @@ pub fn genericExpr(comptime T: type, comptime opsTable: OpsTable(T), alc: *std.m
             if (dtypeIsInteger(cast_dtype) and op.function == .divide) {
                 cast_dtype = defaultFloatDType;
             }
-            var arg_index : u64 = 0;
+            var arg_index: u64 = 0;
             while (arg_index < num_args) : (arg_index += 1) {
                 if (opsTable.get_dtype(op_args[arg_index]) != cast_dtype) {
                     var cast_value = try opsTable.cast(alc, op_args[arg_index], cast_dtype);
@@ -3516,7 +3521,7 @@ pub fn genericExpr(comptime T: type, comptime opsTable: OpsTable(T), alc: *std.m
         };
 
         {
-            var arg_index : u64 = 0;
+            var arg_index: u64 = 0;
             while (arg_index < num_args) : (arg_index += 1) {
                 if (should_release[arg_index]) {
                     op_args[arg_index].release();

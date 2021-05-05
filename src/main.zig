@@ -2,6 +2,8 @@
 //   https://github.com/milindmalshe/Fully-Connected-Neural-Network-MNIST-Classification-PyTorch/blob/master/FCN_MNIST_Classification_PyTorch.py
 // Download dataset from http://yann.lecun.com/exdb/mnist/
 // Run with `zig build -Drelease-fast run -- <path to folder with mnist files>`
+// If you have MKL installed from https://software.intel.com/content/www/us/en/develop/tools/oneapi/base-toolkit/download.html
+//   you can run with `zig build -Drelease-fast -Duse-mkl run -- <data path>` to use a much faster matrix multiply operation
 
 const std = @import("std");
 

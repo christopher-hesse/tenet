@@ -138,7 +138,7 @@ Because operator overloading is not used, the `expr` syntax has much fewer limit
 
 * Defining an explicit graph may be a better approach than this and is used in the [kann](https://github.com/attractivechaos/kann) library
 * Deallocating memory immediately is kind of annoying when you don't use `expr`.  If you use `defer`, it won't be deallocated until the end of the block
-* Performance is mediocre, there has been no tuning for performance beyond an option to use [Intel's MKL library](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html#gs.zou9ms).  The option just causes the library to be linked, you still have to enable it manually in the code.
+* Performance is mediocre, there has been no tuning for performance beyond an option to use [Intel's MKL library](https://software.intel.com/content/www/us/en/develop/tools/oneapi/components/onemkl.html#gs.zou9ms).  The option is `-Duse-mkl` when using `zig build`.
 * CPU only for now
 * Only tested on windows
 * Probably contains serious bugs

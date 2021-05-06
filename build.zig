@@ -16,6 +16,8 @@ fn linkMKL(exe : *std.build.LibExeObjStep) void {
     // https://stackoverflow.com/a/19684240
     // exe.linkSystemLibrary("tbb12");
     exe.linkLibC();
+    // adding this in manually like this means that failing to specify use-mkl will
+    // result in a compile error instead of a link error
     exe.addPackagePath("mkl", "bindings\\mkl.zig");
 }
 
